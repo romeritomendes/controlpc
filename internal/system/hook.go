@@ -13,9 +13,6 @@ func StartInputCapture(logger *slog.Logger, sendEvent func(protocol.InputEvent))
 	screenWidth, screenHeight := robotgo.GetScreenSize()
 	centerX, centerY := screenWidth/2, screenHeight/2
 
-	// Variáveis para calcular o Delta sem forçar o mouse pro centro toda hora
-	lastX, lastY := centerX, centerY
-
 	logger.Info("Motor INICIADO. Pressione 'F10' para alternar o controle.")
 
 	s := hook.Start()
@@ -23,12 +20,11 @@ func StartInputCapture(logger *slog.Logger, sendEvent func(protocol.InputEvent))
 
 	for ev := range s {
 		// 1. O Atalho de Teclado (F10)
-		if ev.Kind == hook.KeyDown && int(ev.Keycode) == 109 {
+		if ev.Kind == hook.KeyDown && (ev.Keychar == 65535 || int(ev.Keycode) == 109) {
 			isCapturing = !isCapturing
 			if isCapturing {
 				logger.Info("Modo Windows ATIVADO. Mouse preso no Mac.")
 				robotgo.Move(centerX, centerY)
-				lastX, lastY = centerX, centerY // Reseta a posição base
 			} else {
 				logger.Info("Modo Mac ATIVADO. Controle local restaurado.")
 			}
@@ -41,25 +37,26 @@ func StartInputCapture(logger *slog.Logger, sendEvent func(protocol.InputEvent))
 
 		// 2. O Movimento do Mouse (Sem loop de feedback)
 		if ev.Kind == hook.MouseMove {
-			deltaX := int(ev.X) - lastX
-			deltaY := int(ev.Y) - lastY
+			x, y := int(ev.X), int(ev.Y)
 
-			if deltaX != 0 || deltaY != 0 {
-				event := protocol.InputEvent{
-					EventType: "mouse_move",
-					DeltaX:    deltaX,
-					DeltaY:    deltaY,
-				}
-				sendEvent(event)
-
-				lastX, lastY = int(ev.X), int(ev.Y)
-
-				// Bounding Box: Só joga pro centro se chegar perto da borda (evita o loop)
-				if lastX < 100 || lastX > screenWidth-100 || lastY < 100 || lastY > screenHeight-100 {
-					robotgo.Move(centerX, centerY)
-					lastX, lastY = centerX, centerY
-				}
+			// SEGREDO AQUI: Se o mouse já está no centro exato, ignora o evento.
+			// Isso impede o loop infinito de feedback que fazia o mouse tremer.
+			if x == centerX && y == centerY {
+				continue
 			}
+
+			// Calcula o delta a partir do centro
+			deltaX := x - centerX
+			deltaY := y - centerY
+
+			event := protocol.InputEvent{
+				EventType: "mouse_move",
+				DeltaX:    deltaX,
+				DeltaY:    deltaY,
+			}
+			sendEvent(event)
+
+			robotgo.Move(centerX, centerY)
 		}
 
 		// 3. Os Cliques do Mouse (Botão Esquerdo)

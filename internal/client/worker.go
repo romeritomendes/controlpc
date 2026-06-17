@@ -40,7 +40,15 @@ func Connect(logger *slog.Logger, url string) {
 func ExecuteCommand(logger *slog.Logger, event protocol.InputEvent) {
 	switch event.EventType {
 	case "mouse_move":
-		robotgo.MoveRelative(event.DeltaX, event.DeltaY)
+		// Lê a posição exata atual do Windows
+		atualX, atualY := robotgo.Location()
+
+		// Soma o movimento recebido do Mac
+		novoX := atualX + event.DeltaX
+		novoY := atualY + event.DeltaY
+
+		// Move o mouse para a coordenada exata
+		robotgo.Move(novoX, novoY)
 
 	case "mouse_click":
 		// O event.Key terá "down" (apertou) ou "up" (soltou)
