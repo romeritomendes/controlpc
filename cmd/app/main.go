@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +16,9 @@ import (
 
 func main() {
 	mode := flag.String("mode", "server", "Executar como 'server' ou 'client'")
+
+	serverIP := flag.String("server", "localhost", "Endereço IP do servidor Mac (usado apenas no modo client)")
+
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -50,8 +54,15 @@ func main() {
 			os.Exit(1)
 		}
 
+	} else if *mode == "client" {
+		// Monta a URL do WebSocket dinamicamente usando o IP passado por flag
+		wsURL := fmt.Sprintf("ws://%s:3000/ws", *serverIP)
+
+		logger.Info("Iniciando modo CLIENTE (Windows)", slog.String("conectando_em", wsURL))
+		client.Connect(logger, wsURL)
+
 	} else {
-		logger.Info("Iniciando modo CLIENTE (Windows)")
-		client.Connect(logger, "ws://localhost:3000/ws")
+		logger.Error("Modo inválido! Use -mode=server ou -mode=client", slog.String("voce_digitou", *mode))
+		os.Exit(1)
 	}
 }
