@@ -8,7 +8,7 @@ import (
 	"github.com/romeritomendes/controlpc/internal/protocol"
 )
 
-func StartInputCapture(logger *slog.Logger, sendEvent func(protocol.InputEvent)) {
+func StartInputCapture(logger *slog.Logger, sendEvent func(protocol.Message)) {
 	isCapturing := false
 	screenWidth, screenHeight := robotgo.GetScreenSize()
 	centerX, centerY := screenWidth/2, screenHeight/2
@@ -49,10 +49,10 @@ func StartInputCapture(logger *slog.Logger, sendEvent func(protocol.InputEvent))
 			deltaX := x - centerX
 			deltaY := y - centerY
 
-			event := protocol.InputEvent{
-				EventType: "mouse_move",
-				DeltaX:    deltaX,
-				DeltaY:    deltaY,
+			event := protocol.Message{
+				Type:   "mouse_move",
+				DeltaX: deltaX,
+				DeltaY: deltaY,
 			}
 			sendEvent(event)
 
@@ -72,10 +72,10 @@ func StartInputCapture(logger *slog.Logger, sendEvent func(protocol.InputEvent))
 				button = "right"
 			}
 
-			event := protocol.InputEvent{
-				EventType: "mouse_click",
-				Button:    button, // "left" ou "right"
-				Key:       action, // Usaremos o campo Key para avisar se apertou ("down") ou soltou ("up")
+			event := protocol.Message{
+				Type:   "mouse_click",
+				Button: button, // "left" ou "right"
+				Key:    action, // Usaremos o campo Key para avisar se apertou ("down") ou soltou ("up")
 			}
 			sendEvent(event)
 		}

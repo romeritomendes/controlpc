@@ -1,44 +1,51 @@
 package client
 
 import (
-	"encoding/json"
+	"encoding/gob"
 	"log/slog"
+	"net"
 
 	"github.com/go-vgo/robotgo"
-	"github.com/gorilla/websocket"
 	"github.com/romeritomendes/controlpc/internal/protocol"
 )
 
-func Connect(logger *slog.Logger, url string) {
-	logger.Info("Tentando conectar ao servidor...", slog.String("url", url))
+func Connect(logger *slog.Logger, address string, myName string) {
+	logger.Info("Tentando conectar ao servidor...", slog.String("url", address))
 
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		logger.Error("Erro ao conectar", slog.String("error", err.Error()))
 		return
 	}
 	defer conn.Close()
 
-	logger.Info("Conectado ao servidor com sucesso! Aguardando comandos...")
+	encoder := gob.NewEncoder(conn)
+	decoder := gob.NewDecoder(conn)
+
+	handshake := protocol.Message{
+		Type:       "handshake",
+		ClientName: myName,
+	}
+	if err := encoder.Encode(handshake); err != nil {
+		logger.Error("Handshake error")
+		return
+	}
+
+	logger.Info("Handshake started", slog.String("name", myName))
 
 	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
+		var msg protocol.Message
+		if err := decoder.Decode(&msg); err != nil {
 			logger.Error("Conexão perdida", slog.String("error", err.Error()))
 			break
 		}
 
-		var event protocol.InputEvent
-		if err := json.Unmarshal(message, &event); err != nil {
-			continue
-		}
-
-		ExecuteCommand(logger, event)
+		ExecuteCommand(logger, msg)
 	}
 }
 
-func ExecuteCommand(logger *slog.Logger, event protocol.InputEvent) {
-	switch event.EventType {
+func ExecuteCommand(logger *slog.Logger, event protocol.Message) {
+	switch event.Type {
 	case "mouse_move":
 		// Lê a posição exata atual do Windows
 		atualX, atualY := robotgo.Location()

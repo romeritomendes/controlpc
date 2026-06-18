@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -32,15 +31,9 @@ func main() {
 
 		// 2. Inicia a captura global do sistema em uma Goroutine.
 		// Passamos uma função de callback que será chamada sempre que o mouse mover.
-		go system.StartInputCapture(logger, func(event protocol.InputEvent) {
-			// Converte a struct de movimento em JSON
-			data, err := json.Marshal(event)
-			if err != nil {
-				logger.Error("Erro ao empacotar evento", slog.String("error", err.Error()))
-				return
-			}
-			// Envia o JSON para o Hub repassar aos clientes (Windows)
-			hub.BroadcastMessage(data)
+		go system.StartInputCapture(logger, func(event protocol.Message) {
+			// Envia o GOB para o Hub repassar aos clientes (Windows)
+			hub.BroadcastMessage(event)
 		})
 
 		// 3. Registra a rota do WebSocket
@@ -59,7 +52,7 @@ func main() {
 		wsURL := fmt.Sprintf("ws://%s:3000/ws", *serverIP)
 
 		logger.Info("Iniciando modo CLIENTE (Windows)", slog.String("conectando_em", wsURL))
-		client.Connect(logger, wsURL)
+		client.Connect(logger, wsURL, "windows")
 
 	} else {
 		logger.Error("Modo inválido! Use -mode=server ou -mode=client", slog.String("voce_digitou", *mode))

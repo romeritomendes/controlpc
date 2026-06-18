@@ -2,10 +2,11 @@
 // How to comunicate with the clients
 package protocol
 
-type InputEvent struct {
-	EventType string `json:"type"` // Para garantir que apenas o alvo execute
-	DeltaX    int    `json:"dx,omitempty"`
-	DeltaY    int    `json:"dy,omitempty"`
-	Button    string `json:"button,omitempty"`
-	Key       string `json:"key,omitempty"`
+type Message struct {
+	Type       string // "handshake", "mouse_move", "mouse_click"
+	ClientName string // Usado apenas no "handshake" para identificar a máquina
+	DeltaX     int    // Usado no "mouse_move"
+	DeltaY     int
+	Button     string // Usado no "mouse_click"
+	Key        string // "up" ou "down"
 }
