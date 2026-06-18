@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 
 	"github.com/romeritomendes/controlpc/internal/client"
@@ -36,20 +35,24 @@ func main() {
 			hub.BroadcastMessage(event)
 		})
 
-		// 3. Registra a rota do WebSocket
-		http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-			server.ServeWS(logger, hub, w, r)
-		})
+		// // 3. Registra a rota do WebSocket
+		// http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		// 	server.ServeWS(logger, hub, w, r)
+		// })
+		//
+		// // 4. Trava a thread principal mantendo o servidor no ar
+		// if err := http.ListenAndServe(":3000", nil); err != nil {
+		// 	logger.Error("Erro no servidor", slog.String("Error", err.Error()))
+		// 	os.Exit(1)
+		// }
 
-		// 4. Trava a thread principal mantendo o servidor no ar
-		if err := http.ListenAndServe(":3000", nil); err != nil {
+		if err := server.StartTCPServe(logger, hub, ":3000"); err != nil {
 			logger.Error("Erro no servidor", slog.String("Error", err.Error()))
 			os.Exit(1)
 		}
 
 	} else if *mode == "client" {
-		// Monta a URL do WebSocket dinamicamente usando o IP passado por flag
-		wsURL := fmt.Sprintf("ws://%s:3000/ws", *serverIP)
+		wsURL := fmt.Sprintf("%s:3000", *serverIP)
 
 		logger.Info("Iniciando modo CLIENTE (Windows)", slog.String("conectando_em", wsURL))
 		client.Connect(logger, wsURL, "windows")
