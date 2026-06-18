@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 
 	"github.com/romeritomendes/controlpc/internal/client"
@@ -35,18 +36,8 @@ func main() {
 			hub.BroadcastMessage(event)
 		})
 
-		// // 3. Registra a rota do WebSocket
-		// http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		// 	server.ServeWS(logger, hub, w, r)
-		// })
-		//
-		// // 4. Trava a thread principal mantendo o servidor no ar
-		// if err := http.ListenAndServe(":3000", nil); err != nil {
-		// 	logger.Error("Erro no servidor", slog.String("Error", err.Error()))
-		// 	os.Exit(1)
-		// }
-
-		if err := server.StartTCPServe(logger, hub, ":3000"); err != nil {
+		address := getLocalIP()
+		if err := server.StartTCPServe(logger, hub, address); err != nil {
 			logger.Error("Erro no servidor", slog.String("Error", err.Error()))
 			os.Exit(1)
 		}
@@ -61,4 +52,17 @@ func main() {
 		logger.Error("Modo inválido! Use -mode=server ou -mode=client", slog.String("voce_digitou", *mode))
 		os.Exit(1)
 	}
+}
+
+func getLocalIP() string {
+	// Cria uma conexão UDP falsa (não envia dados, só descobre a rota)
+	conn, err := net.Dial("udp", "8.8.8.8:3000")
+	if err != nil {
+		return "127.0.0.1:3000" // Fallback de segurança se estiver sem rede
+	}
+	defer conn.Close()
+
+	// Extrai apenas a parte do IP (ignorando a porta)
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return fmt.Sprintf("%s:3000", localAddr.IP.String())
 }

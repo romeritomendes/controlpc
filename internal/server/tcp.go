@@ -39,7 +39,7 @@ func handleConnection(logger *slog.Logger, hub *Hub, conn net.Conn) {
 		return
 	}
 
-	if msg.Type != "Handshake" {
+	if msg.Type != "handshake" {
 		logger.Error("First message should be Handshake")
 		conn.Close()
 		return
